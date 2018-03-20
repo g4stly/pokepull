@@ -3,6 +3,7 @@ package pokepull
 import (
 	"fmt"
 	"log"
+	"os"
 	"encoding/json"
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
@@ -107,6 +108,13 @@ func (self *PokemonJSON) Fetch() error {
 
 func (self *PokemonJSON) Parse() *Pokemon {
 	var pkmn Pokemon
+	log.Printf("parse(): %v", string(self.json))
+	json.Unmarshal(self.json, &pkmn)
+	return &pkmn
+}
+
+func (self *PokemonJSON) FmtParse() *FmtPokemon {
+	var pkmn FmtPokemon
 	json.Unmarshal(self.json, &pkmn)
 	return &pkmn
 }
@@ -116,7 +124,7 @@ func Pull(name string) *FmtPokemon {
 	var json PokemonJSON
 	// do we have it in our database?
 	// first, open database
-	db, err := sql.Open("sqlite3", "./database.db")
+	db, err := sql.Open("sqlite3", fmt.Sprintf("/home/%v/.pokepull/database.db", os.Getenv("USER")))
 	if err != nil { log.Fatal(err) }
 	defer db.Close();
 	// next, query for json
@@ -127,7 +135,7 @@ func Pull(name string) *FmtPokemon {
 	if err != nil && err != sql.ErrNoRows { // if we error'd out
 		log.Fatal(err)
 	} else if err == nil {			// if we did not error out
-		return json.Parse().ToFmtPokemon()
+		return json.FmtParse()
 	}					// if we error'd out cuz there was no entry
 
 	// set up url

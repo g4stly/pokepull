@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 	"flag"
-	"./pokepull"
+	"github.com/g4stly/pokepull/pokepull"
 )
 
 var name = flag.String("n", "bulbasaur", "indicate by name which pokemon to fetch json for")
