@@ -1,21 +1,21 @@
 package main
 
 import (
-	"fmt"
+	"os"
 	"flag"
 	"./pokepull"
 )
 
-var name = flag.String("name", "garchomp", "use to set name of pokemon to pull")
-var verbose = flag.Bool("v", false, "verbose mode")
+var name = flag.String("n", "bulbasaur", "indicate by name which pokemon to fetch json for")
 
 func main() {
 	flag.Parse()
 	pkmn := pokepull.Pull(*name)
 	json, err := pkmn.ToJson()
 	if err != nil {
-		fmt.Println(err)
+		os.Stderr.Write([]byte(err.Error()))
 		return
 	}
-	fmt.Println(string(json))
+	os.Stdout.Write(json)
+	os.Exit(0)
 }
