@@ -2,7 +2,10 @@ package pokepull
 
 import (
 	"fmt"
+	"log"
 	"encoding/json"
+	"database/sql"
+	_ "github.com/mattn/go-sqlite3"
 	"bytes"
 	"github.com/andelf/go-curl"
 )
@@ -31,13 +34,6 @@ type FmtPokemon struct {
 	Spdefense	int	`json:"spdefense"`
 	Speed		int	`json:"speed"`
 	stats		map[string]int
-}
-
-func (pkmn *Pokemon) Print() {
-	fmt.Printf("name: %v\n", pkmn.Name)
-	for i := 0; i < len(pkmn.Stats); i++ {
-		fmt.Printf("%v: %v\n", pkmn.Stats[i].Inner.Name, pkmn.Stats[i].Base)
-	}
 }
 
 func (pkmn *Pokemon) ToFmtPokemon() *FmtPokemon {
@@ -117,14 +113,43 @@ func (self *PokemonJSON) Parse() *Pokemon {
 //==============================================================
 var baseURL = "https://pokeapi.co/api/v2/pokemon/"
 func Pull(name string) *FmtPokemon {
+	var json PokemonJSON
+	// do we have it in our database?
+	// first, open database
+	db, err := sql.Open("sqlite3", "./database.db")
+	if err != nil { log.Fatal(err) }
+	defer db.Close();
+	// next, query for json
+	stmt, err := db.Prepare("SELECT json FROM pokemon WHERE name=?")
+	if err != nil { log.Fatal(err) }
+	defer stmt.Close()
+	err = stmt.QueryRow(name).Scan(&json.json)
+	if err != nil && err != sql.ErrNoRows { // if we error'd out
+		log.Fatal(err)
+	} else if err == nil {			// if we did not error out
+		return json.Parse().ToFmtPokemon()
+	}					// if we error'd out cuz there was no entry
+
 	// set up url
 	var url bytes.Buffer
 	for i := 0; i < len(baseURL); i++ { url.WriteByte(baseURL[i]) }
 	url.WriteString(fmt.Sprintf("%v/", name))
 
 
-	json := &PokemonJSON { url: url.String() }
+	json.url = url.String()
 	json.Fetch()
 	pkmn := json.Parse()
-	return pkmn.ToFmtPokemon()
+	fmt_pkmn := pkmn.ToFmtPokemon()
+
+	// insert new formatted pokemon into database
+	insertStmt, err := db.Prepare("INSERT INTO pokemon (name, json) VALUES (?, ?);")
+	if err != nil { log.Fatal(err) }
+	defer insertStmt.Close()
+	literalJson, err := fmt_pkmn.ToJson()
+	if err != nil { log.Fatal(err) }
+	_ , err = insertStmt.Exec(fmt_pkmn.Name, literalJson)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return fmt_pkmn
 }
