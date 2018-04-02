@@ -2,15 +2,18 @@ package main
 
 import (
 	"os"
-	"flag"
+	"fmt"
 	"github.com/g4stly/pokepull/pokepull"
 )
 
-var name = flag.String("n", "bulbasaur", "indicate by name which pokemon to fetch json for")
-
 func main() {
-	flag.Parse()
-	pkmn := pokepull.Pull(*name)
+	if len(os.Args) < 2 {
+		error_message := []byte(fmt.Sprintf("USAGE: %v <name>\n", os.Args[0]))
+		os.Stderr.Write(error_message)
+		os.Exit(-1)
+	}
+
+	pkmn := pokepull.Pull(os.Args[1])
 	json, err := pkmn.ToJson()
 	if err != nil {
 		os.Stderr.Write([]byte(err.Error()))
