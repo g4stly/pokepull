@@ -111,7 +111,7 @@ func (self *PokemonJSON) Process(buffer []byte, userdata interface{}) bool {
 }
 
 func (self *PokemonJSON) Fetch(name string) *PokemonJSON {
-	log.Printf("now fetching pokemon: %v\n", name)
+	os.Stderr.Write([]byte(fmt.Sprintf("now fetching: %v\n", name)))
 	easy := curl.EasyInit()
 	defer easy.Cleanup()
 
